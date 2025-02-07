@@ -1,0 +1,22 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+!Makefile
+
+# Ignore large, unnecessary, and temp files
+*.raw
+*.root
+#*
+*#*
+*~
+*.o
+*.png
+*.dat
+.__*
+*.swp
