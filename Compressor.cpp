@@ -1,10 +1,10 @@
-#include <TCanvas.h>
 #include <bitset>
 
 #include <TGraph.h>
 #include "TFile.h"
 
 #include "WavFile.h"
+#include "MP3File.h"
 
 using namespace std;
 
@@ -29,11 +29,18 @@ using namespace std;
 
 int main(int argc, char** argv) {
 
-  if (argc != 2) {
-    cerr << "Incorrect number of arguments. Proper usage: Compressor musicFile.wav" << endl;
+  if (argc != 3) {
+    cerr << "Incorrect number of arguments. Proper usage: Compressor musicFile [fileType]" << endl;
     return 1;
   }
 
+  const string musicFileName = argv[1];
+  const string fileType = argv[2];
+  if (fileType != "mp3" && fileType != "wav") {
+    cerr << "Allowed file types are only mp3 and wav."  << endl;
+    return 1;
+  }
+  
   // TODO: Try 4? Does that ever help. 4 is actually pretty good??
   // Seems to generally do better with 4 than 8, 8 than 16, ...
   // Is this always true?
@@ -50,10 +57,13 @@ int main(int argc, char** argv) {
   const int minIteration = 1; // needs to be 1 or greater
   
   // Get the vector of the raw audio data
-  string musicFileName = argv[1];
-  WavFile musicFile;
-  musicFile.SetAudioDataFromFile(musicFileName);
-  const vector<uint8_t>& audioData = musicFile.GetAudioData();
+  GenericFile* musicFile;
+  if (fileType == "mp3")
+    musicFile = new MP3File();
+  else
+    musicFile = new WavFile();
+  musicFile->SetAudioDataFromFile(musicFileName);
+  const vector<uint8_t>& audioData = musicFile->GetAudioData();
   const int originalNumberOfBits = audioData.size()*8;
 
   /*
@@ -224,7 +234,7 @@ int main(int argc, char** argv) {
 
       if (bestNumberOfBitsRequired == -1 || bestNumberOfBitsRequired > totalBitsRequired) {
 	bestIterationIndex = j;
-	bestNumberOfRepeats = i;
+	bestNumberOfRepeats = currentNumberOfRepeats;
 	bestNumberOfBitsRequired = totalBitsRequired;
       }
       
@@ -234,7 +244,9 @@ int main(int argc, char** argv) {
   cout << "bestNumberOfRepeats: " << bestNumberOfRepeats << endl;
   cout << "Best required: " << bestNumberOfBitsRequired << endl;
   cout << "Original bits: " << originalNumberOfBits << endl;
+
+  // Cleanup
+  delete musicFile;
   
-    
   return 0;
 }

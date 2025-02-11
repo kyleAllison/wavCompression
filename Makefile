@@ -1,8 +1,8 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall -g $(shell root-config --cflags)
-LDFLAGS = $(shell root-config --libs)
+CXXFLAGS = -std=c++17 -O2 -Wall -g $(shell root-config --cflags) 
+LDFLAGS = $(shell root-config --libs) -lmpg123
 
-SRC = Compressor.cpp WavFile.cpp 
+SRC = Compressor.cpp WavFile.cpp MP3File.cpp
 OBJ = $(SRC:.cpp=.o)
 EXEC = Compressor
 

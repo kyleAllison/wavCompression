@@ -1,19 +1,27 @@
 #ifndef WAVFILE_H
 #define WAVFILE_H
 
-#include <string>
 #include <vector>
 #include <iostream>
 #include <memory>
 #include <fstream>
 #include <cstring>
-#include <variant>
 
-class WavFile {
+#include "GenericFile.h"
+
+class WavFile : public GenericFile {
+  
 public:
 
   void SetAudioDataFromFile(const std::string filename);
   const std::vector<uint8_t>& GetAudioData() const { return audioData; }
+  const std::vector<uint8_t>& GetHeaderData() const { return headerData; }
+  void WriteFile(const std::string filename) const {
+    std::ofstream outFile(filename, std::ios::binary);
+    outFile.write(reinterpret_cast<const char*>(headerData.data()), headerData.size());
+    outFile.write(reinterpret_cast<const char*>(audioData.data()), audioData.size());
+    outFile.close();
+  }
   
   const double GetDuration() const { return duration; }
   const uint32_t GetSampleRate() const { return sampleRate; }
@@ -27,6 +35,9 @@ private:
 
   // Regardless of the bits per sample, we can always store the data in this
   std::vector<uint8_t> audioData;
+
+  // Store all header info in this
+  std::vector<uint8_t> headerData;
 
   // All of the header information, sizes in bytes
   // RIFF Chunk, specifying file is RIFF format
@@ -70,12 +81,12 @@ private:
   // Bits per Sample (16 bits per sample for CD quality)
   uint16_t bitsPerSample;
 
+  // There can be extra, variable length data in the format chunk
+  std::vector<uint8_t> extraFormatData;
+  
   // data Chunk, just string "data" to indicate start
   const static int dataHeaderLength = 4;
   char dataHeader[dataHeaderLength];
-
-  // There can be extra, variable length data in the format chunk
-  std::vector<uint8_t> extraFormatData;
 
   // Data Size (size of the actual audio data, e.g., 1000 bytes)
   uint32_t dataSize;

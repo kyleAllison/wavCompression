@@ -61,6 +61,34 @@ void WavFile::SetAudioDataFromFile(const string filename) {
   
   inFile.close();
 
+  // Lastly, store all header info
+  headerData.clear();
+  headerData.insert(headerData.end(), riff, riff + riffLength);
+  headerData.insert(headerData.end(), fileSize, fileSize + fileSizeLength);
+  headerData.insert(headerData.end(), wave, wave + waveLength);
+  headerData.insert(headerData.end(), format, format + formatLength);
+  headerData.insert(headerData.end(), reinterpret_cast<uint8_t*>(&formatChunkSize),
+		    reinterpret_cast<uint8_t*>(&formatChunkSize) + sizeof(uint32_t));
+  headerData.insert(headerData.end(), audioFormat, audioFormat + audioFormatLength);
+  headerData.insert(headerData.end(), reinterpret_cast<uint8_t*>(&numChannels),
+		    reinterpret_cast<uint8_t*>(&numChannels) + sizeof(uint16_t));
+  headerData.insert(headerData.end(), reinterpret_cast<uint8_t*>(&sampleRate),
+		    reinterpret_cast<uint8_t*>(&sampleRate) + sizeof(uint32_t));
+  headerData.insert(headerData.end(), byteRate, byteRate + byteRateLength);
+  headerData.insert(headerData.end(), blockAlign, blockAlign + blockAlignLength);
+  headerData.insert(headerData.end(), reinterpret_cast<uint8_t*>(&bitsPerSample),
+		    reinterpret_cast<uint8_t*>(&bitsPerSample) + sizeof(uint16_t));
+
+  for (unsigned int i = 0; i < extraFormatData.size(); ++i) {
+    headerData.insert(headerData.end(), &extraFormatData.at(i),
+		      &extraFormatData.at(i)+ sizeof(uint8_t));
+  }
+
+  headerData.insert(headerData.end(), dataHeader, dataHeader + dataHeaderLength);
+  headerData.insert(headerData.end(), reinterpret_cast<uint8_t*>(&dataSize),
+		    reinterpret_cast<uint8_t*>(&dataSize) + sizeof(uint32_t));    
+    
+  
 }
 
 /*
