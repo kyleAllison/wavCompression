@@ -11,7 +11,9 @@ class GenericFile {
 
   // Need a virtual destructor for memory safety. Without it, it is possible to only
   // call the base class destructor, which will lead to memory leaks/undefined behavior
+  // No dynamic memory, so we don't need copy constructor/operator
   virtual ~GenericFile() {}
+
 
   virtual void SetAudioDataFromFile(const std::string filename) = 0;
   virtual const std::vector<uint8_t>& GetAudioData() const = 0;

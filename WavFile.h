@@ -57,7 +57,7 @@ private:
   char format[formatLength];
 
   // Size of format chunk, excluding the chunk ID and chunk size fields
-  const int standardFormatChunkSize = 16;
+  const uint32_t standardFormatChunkSize = 16;
   uint32_t formatChunkSize;
 
   // Audio Format (PCM = 1, for example)

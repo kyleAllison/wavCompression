@@ -5,6 +5,7 @@
 
 #include "WavFile.h"
 #include "MP3File.h"
+#include "BitSequencer.h"
 
 using namespace std;
 
@@ -45,15 +46,15 @@ int main(int argc, char** argv) {
   // Seems to generally do better with 4 than 8, 8 than 16, ...
   // Is this always true?
   // TODO: If it doesn't work at first, will doing the "compression" once work later?
-  const vector<int> repeatsToTry = {4, 8, 16, 32, 64};
-  //const vector<int> repeatsToTry = {8};
+  //const vector<int> repeatsToTry = {4, 8, 16, 32, 64};
+  const vector<int> repeatsToTry = {4, 8};
   //const int nominalRepeat = 7;
 
   // Don't go past comparing bit 0 to bit 512
   //const int maxIteration = 32*16;
   // TODO: Doesn't seem to matter much?
   // Min iteration of 1 seems best at first. Is this always true or just for first compression?
-  const int maxIteration = 17;
+  const int maxIteration = 4;
   const int minIteration = 1; // needs to be 1 or greater
   
   // Get the vector of the raw audio data
@@ -63,9 +64,30 @@ int main(int argc, char** argv) {
   else
     musicFile = new WavFile();
   musicFile->SetAudioDataFromFile(musicFileName);
-  const vector<uint8_t>& audioData = musicFile->GetAudioData();
-  const int originalNumberOfBits = audioData.size()*8;
+  //const vector<uint8_t>& audioData = musicFile->GetAudioData();
+  
 
+  // Dummy for testing
+  vector<uint8_t> audioData;
+  for (int i = 0; i < 2; ++i) {
+
+    /*
+    if (i%2)
+      audioData.push_back(0);
+    else
+      audioData.push_back(255);
+    */
+    
+    audioData.push_back(i);
+  }
+
+  for (unsigned int i = 0; i < audioData.size(); ++i) {
+    bitset<8> binary(audioData.at(i));
+    cout << binary << endl;
+  }
+
+  const int originalNumberOfBits = audioData.size()*8;
+  
   /*
     Now on to the hard part. Compare each consecutive bit, every other, every third, ...
     and so on and count the total number of bits required if we were to write, for example,
@@ -120,6 +142,7 @@ int main(int argc, char** argv) {
   */  
 
   // First find the best method
+  BitSequencer bitSequencer;
   int bestIterationIndex = -1;
   int bestNumberOfRepeats = -1;
   int bestNumberOfBitsRequired = -1;
@@ -130,103 +153,16 @@ int main(int argc, char** argv) {
     const unsigned int currentNumberOfRepeats = repeatsToTry.at(i);
     const int minNumberToCheck = log(currentNumberOfRepeats)/log(2.0) - 1;
 
+    cout << "\n number of repeats: " << currentNumberOfRepeats << endl;
     cout << "min number: " << minNumberToCheck << endl;
 
     // Compare every jth bit
-    for (int j = minIteration; j < maxIteration; ++j) {
+    for (int j = minIteration; j <= maxIteration; ++j) {
 
-      // Keep track of total bits required for current number of allowed repeats, comparing
-      // every jth bit
-      int totalBitsRequired = 0;
-
-      // We need to keep track of which index to start our comparisons for each
-      // comparison iteration.
-      // For example, for comparing every third, we have to 3 separate global indices
-      vector<int> globalIndices;
-      for (unsigned int jj = 0; jj < j; ++jj)
-	globalIndices.push_back(j); 
-
-      // TODO: Would need to replace original number of bits with something else for repeated
-      // compressions
-      // Check every bit!
-      for (unsigned int jj = 0; jj < globalIndices.size(); ++jj) {
-
-	int startingGlobalBitIndex = globalIndices.at(jj);
-	
-	for (int globalBitIndex = startingGlobalBitIndex;
-	     globalBitIndex < originalNumberOfBits - maxIteration*currentNumberOfRepeats;
-	     globalBitIndex += j) {
-
-	  vector<bool> bits;
-	  int nextBitIndex = globalBitIndex + j;
-
-	  /*	  
-	  if ( globalBitIndex%100000000 == 0) {
-	    cout << "\n\n Checking for number of allowed repeats: " << currentNumberOfRepeats << endl;
-	    cout << "minNumberToCheck: " << minNumberToCheck << endl;
-	    cout << "Number of bits to skip when comparing them to each other: " << j << endl;
-	    cout << "Current global bit index: " << globalBitIndex << endl;
-	    cout << "Comparing thatto bit number: " << nextBitIndex << endl;
-	    cout << "checking for starting global bit index: " << startingGlobalBitIndex << endl;
-	  }
-	  */	  	    
-
-	  bool stoppedRepeating = false;
-	  int nBitsChecked = 0;
-
-	  // Go until we hit max allowed, or they stop repeating and we hit min number to store
-	  while (nBitsChecked < currentNumberOfRepeats) {
-
-	    // If we're check bit 10, we need word k + 1
-	    const int currentWordIndex = floor(nextBitIndex/8.0);
-	    const uint8_t currentWord = audioData.at(currentWordIndex);
-	    const int currentBitIndex = nextBitIndex%8;
-	  
-	    // ">>" shifts the bit to the LSB, andthen "& 1" returns true if it is a 1
-	    const bool currentBit = (currentWord >> currentBitIndex) & 1;
-	    bits.push_back(currentBit);
-	    nBitsChecked++;
-	    globalBitIndex += j;
-	    nextBitIndex += j;
-
-	    /*
-	    if ( globalBitIndex%100000000 == 0) {
-	      cout << "currentWordIndex: " << currentWordIndex << endl;
-	      cout << "currentBitIndex: " << currentBitIndex << endl;
-	      cout << "currentBit: " << currentBit << endl;
-	      cout << "currentWord: " << int(currentWord) << endl;
-	    }
-	    */
-	    
-	    // once we have two bits, check to see if they are the same
-	    if (nBitsChecked > 1) 
-	      if ( bits.at(nBitsChecked - 1) != bits.at(nBitsChecked - 2) ) 
-		stoppedRepeating = true;
-
-	    if (stoppedRepeating && nBitsChecked > minNumberToCheck)
-	      break;
-
-	    /*
-	    cout << "\n\nbits.size(): " << bits.size() << endl;
-	    cout << "stoppedRepea: " << stoppedRepeating << endl;
-	    cout << "nBitsChecked: " << nBitsChecked << endl;
-	    cout << "end while loop" << endl;
-	    cout << ""
-	    */
-	    
-	  } // while we have fewer than max number of repeats allowed for current iteration
-
-	  // Once we're here we have hit the end of the current number of bits to check.
-	  // For now just increment number of bits needed, but later would need to actually
-	  // store the information
-	  // No matter what, for 8 repeats we store 4 bits, 16 5, 32 6, ...
-	  // numberOfBits = Log_2(NumberOfRepeats) + 1
-	  totalBitsRequired += minNumberToCheck + 2;
-	
-	} // end iterating over all bits (globalBitIndex)
-      } // end iterating over the starting global bit indices
+      const int totalBitsRequired =
+	bitSequencer.GetNumberOfBitsRequired(currentNumberOfRepeats, j, audioData);
+      
       // How did the current iteration do?
-
       cout << "\nFor comparing every: " << j << "th, allowing up to: "
 	   << currentNumberOfRepeats << " repeats.";
       cout << " Bits required: " << totalBitsRequired << endl;

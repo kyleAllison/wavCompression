@@ -12,7 +12,7 @@ public:
   // Constructor to initialize mpg123 library
   MP3File() { mpg123_init(); }
   ~MP3File() { mpg123_exit(); }
-
+  
   void SetAudioDataFromFile(const std::string filename);
   const std::vector<uint8_t>& GetAudioData() const { return audioData; }
   const std::vector<uint8_t>& GetHeaderData() const { return headerData; }
